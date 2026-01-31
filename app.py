@@ -1,9 +1,9 @@
 """
 Dashboard Interaktif: Analisis Desain Kemasan Corrugated Cardboard
-Siap deploy ke Streamlit Cloud
+Siap deploy ke Streamlit Cloud - WITH IMAGES
 
 Author: [Nama Anda]
-Version: 1.0
+Version: 1.1
 """
 
 import streamlit as st
@@ -42,6 +42,10 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] {
         padding: 10px 20px;
     }
+    .box-image {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,6 +61,27 @@ st.markdown("---")
 # ============================================
 with st.sidebar:
     st.header("⚙️ Parameter Input")
+    
+    # Tipe Kemasan dengan Gambar
+    st.subheader("📦 Tipe Kemasan")
+    tipe_kemasan = st.selectbox(
+        "Pilih Tipe Kemasan",
+        options=[
+            "1 - Box Arsip (Tutup & Handle)",
+            "2 - Box Shipping (Handle Samping)",
+            "3 - Box Storage (Tutup Atas)",
+            "4 - Box Produk (Flip-Top)",
+            "5 - Box Die-Cut (Flat/Pizza)",
+            "6 - Box Standar (Tutup Terpisah)"
+        ],
+        index=5,
+        help="Pilih tipe kemasan sesuai kebutuhan produk"
+    )
+    
+    # Extract nomor tipe
+    tipe_nomor = int(tipe_kemasan.split(" - ")[0])
+    
+    st.markdown("---")
     
     # Dimensi Kemasan
     st.subheader("📐 Dimensi Kemasan (mm)")
@@ -116,7 +141,7 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    st.caption("Dashboard by [Nama Anda]")
+    st.caption("Dashboard by IPB University")
 
 # ============================================
 # KALKULASI
@@ -128,7 +153,6 @@ luas_permukaan = 2 * (panjang*lebar + lebar*tinggi + panjang*tinggi) / 100
 perimeter = 2 * (panjang + lebar)
 
 # Estimasi BCT menggunakan formula McKee
-# BCT = k × ECT × √(h × Z)
 k_mckee = 5.87
 bct_calculated = k_mckee * ect * np.sqrt(ketebalan * perimeter / 1000)
 
@@ -158,42 +182,85 @@ biaya_material = area_material * harga_per_cm2
 # MAIN CONTENT
 # ============================================
 
-# Metrics Row
-col1, col2, col3, col4 = st.columns(4)
+# Top Section: Image and Metrics
+col_img, col_metrics = st.columns([1, 2])
 
-with col1:
-    st.metric(
-        label="📦 Volume Internal",
-        value=f"{volume_cm3:,.0f} cm³"
-    )
-
-with col2:
-    delta_bct = bct_final - bct_target
-    st.metric(
-        label="💪 BCT Terhitung",
-        value=f"{bct_final:.1f} kg",
-        delta=f"{delta_bct:.1f} kg vs target"
-    )
-
-with col3:
-    if safety_factor >= 1.5:
-        status = "✅ AMAN"
-    elif safety_factor >= 1.0:
-        status = "⚠️ MARGINAL"
-    else:
-        status = "❌ TIDAK AMAN"
+with col_img:
+    st.subheader("🖼️ Tipe Kemasan")
     
-    st.metric(
-        label="🛡️ Safety Factor",
-        value=f"{safety_factor:.2f}",
-        delta=status
-    )
+    # Display image based on selection
+    image_descriptions = {
+        1: "Box Arsip dengan Tutup & Handle",
+        2: "Box Shipping dengan Handle Samping", 
+        3: "Box Storage dengan Tutup Atas",
+        4: "Box Produk Flip-Top",
+        5: "Box Die-Cut (Flat/Pizza Style)",
+        6: "Box Standar dengan Tutup Terpisah"
+    }
+    
+    try:
+        st.image(f"images/{tipe_nomor}.png", caption=image_descriptions[tipe_nomor], use_container_width=True)
+    except:
+        st.info(f"📦 **{image_descriptions[tipe_nomor]}**\n\n*Upload gambar `{tipe_nomor}.png` ke folder `images/` di repository GitHub*")
+    
+    # Karakteristik tipe kemasan
+    karakteristik = {
+        1: "Cocok untuk dokumen, arsip, penyimpanan jangka panjang",
+        2: "Cocok untuk pengiriman barang besar, moving box",
+        3: "Cocok untuk penyimpanan barang rumah tangga",
+        4: "Cocok untuk produk retail, kemasan consumer goods",
+        5: "Cocok untuk makanan (pizza, pastry), barang flat",
+        6: "Cocok untuk berbagai keperluan umum"
+    }
+    st.caption(karakteristik[tipe_nomor])
 
-with col4:
-    st.metric(
-        label="💰 Estimasi Biaya",
-        value=f"Rp {biaya_material:,.0f}"
-    )
+with col_metrics:
+    st.subheader("📊 Hasil Analisis")
+    
+    # Metrics Row
+    m1, m2, m3, m4 = st.columns(4)
+    
+    with m1:
+        st.metric(
+            label="📦 Volume Internal",
+            value=f"{volume_cm3:,.0f} cm³"
+        )
+    
+    with m2:
+        delta_bct = bct_final - bct_target
+        st.metric(
+            label="💪 BCT Terhitung",
+            value=f"{bct_final:.1f} kg",
+            delta=f"{delta_bct:.1f} kg vs target"
+        )
+    
+    with m3:
+        if safety_factor >= 1.5:
+            status = "✅ AMAN"
+        elif safety_factor >= 1.0:
+            status = "⚠️ MARGINAL"
+        else:
+            status = "❌ TIDAK AMAN"
+        
+        st.metric(
+            label="🛡️ Safety Factor",
+            value=f"{safety_factor:.2f}",
+            delta=status
+        )
+    
+    with m4:
+        st.metric(
+            label="💰 Estimasi Biaya",
+            value=f"Rp {biaya_material:,.0f}"
+        )
+    
+    # Status Box
+    if safety_factor >= 1.5:
+        st.success(f"✅ **DESAIN AMAN** - Safety Factor {safety_factor:.2f} melebihi batas minimum 1.5")
+    elif safety_factor >= 1.0:
+        st.warning(f"⚠️ **DESAIN MARGINAL** - Safety Factor {safety_factor:.2f} perlu ditingkatkan (target ≥ 1.5)")
+    else:
+        st.error(f"❌ **DESAIN TIDAK AMAN** - Safety Factor {safety_factor:.2f} di bawah batas minimum. Tingkatkan ECT atau gunakan flute lebih tebal!")
 
 st.markdown("---")
 
@@ -360,11 +427,12 @@ with tab3:
         st.markdown("**Parameter Input:**")
         input_data = pd.DataFrame({
             'Parameter': [
-                'Panjang (L)', 'Lebar (W)', 'Tinggi (H)', 
+                'Tipe Kemasan', 'Panjang (L)', 'Lebar (W)', 'Tinggi (H)', 
                 'Jenis Flute', 'Ketebalan Board', 'ECT',
                 'Target BCT', 'Kelembaban', 'Durasi Simpan'
             ],
             'Nilai': [
+                tipe_kemasan.split(" - ")[1],
                 f"{panjang} mm", f"{lebar} mm", f"{tinggi} mm",
                 jenis_flute, f"{ketebalan} mm", f"{ect} kN/m",
                 f"{bct_target} kg", f"{kelembaban}%", f"{durasi_simpan} hari"
@@ -400,7 +468,7 @@ with tab3:
     st.subheader("📥 Export Data")
     
     export_df = pd.DataFrame({
-        'Kategori': ['Input']*9 + ['Output']*10,
+        'Kategori': ['Input']*10 + ['Output']*10,
         'Parameter': input_data['Parameter'].tolist() + output_data['Parameter'].tolist(),
         'Nilai': input_data['Nilai'].tolist() + output_data['Nilai'].tolist()
     })
@@ -417,9 +485,9 @@ with tab3:
         )
     
     with col_dl2:
-        # JSON export
         json_data = {
             "input": {
+                "tipe_kemasan": tipe_kemasan,
                 "dimensi": {"panjang": panjang, "lebar": lebar, "tinggi": tinggi},
                 "material": {"flute": jenis_flute, "ketebalan": ketebalan, "ect": ect},
                 "kondisi": {"kelembaban": kelembaban, "durasi_simpan": durasi_simpan},
@@ -477,6 +545,17 @@ with tab4:
     | 1.0 - 1.5 | ⚠️ MARGINAL |
     | < 1.0 | ❌ TIDAK AMAN |
     
+    ### Tipe Kemasan
+    
+    | No | Tipe | Karakteristik |
+    |----|------|---------------|
+    | 1 | Box Arsip | Tutup & handle, penyimpanan dokumen |
+    | 2 | Box Shipping | Handle samping, pengiriman barang besar |
+    | 3 | Box Storage | Tutup atas, penyimpanan rumah tangga |
+    | 4 | Box Produk | Flip-top, kemasan retail |
+    | 5 | Box Die-Cut | Flat/pizza, makanan & barang flat |
+    | 6 | Box Standar | Tutup terpisah, keperluan umum |
+    
     ### Catatan Penting
     
     ⚠️ Hasil estimasi bersifat **indikatif**. Untuk hasil akurat, disarankan:
@@ -492,10 +571,10 @@ with tab4:
     """)
     
     st.markdown("---")
-    st.info("💡 Dashboard ini dikembangkan untuk keperluan edukasi dan penelitian. Silakan modifikasi sesuai kebutuhan.")
+    st.info("💡 Dashboard ini dikembangkan untuk keperluan edukasi dan penelitian.")
 
 # ============================================
 # FOOTER
 # ============================================
 st.markdown("---")
-st.caption("📦 Dashboard Analisis Kemasan v1.0 | Dibuat dengan Streamlit")
+st.caption("📦 Dashboard Analisis Kemasan v1.1 | Dibuat dengan Streamlit | IPB University")
